@@ -30,38 +30,38 @@ class SMAuthenticator: NSObject {
         self.serverTokenKey = serverTokenKey
     }
     
-    func authenticateUser(userDetailsToSave: NSDictionary, tokenCallback: (token: String?, error: NSError?) -> ()) {
-            let url = NSURL(string: "\(URLManager.AuthBase.base)")
-            let request = NSMutableURLRequest(URL: url!)
+    func authenticateUser(userDetailsToSave: NSDictionary, tokenCallback: @escaping (_ token: String?, _ error: NSError?) -> ()) {
+            let url = URL(string: "\(SMURLManager.AuthBase.base)")
+            var request = URLRequest(url: url! as URL)
             let body = userDetailsToSave
             
-            request.HTTPMethod = "POST"
+            request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
             do {
-                let jsonBody = try NSJSONSerialization.dataWithJSONObject(body, options: NSJSONWritingOptions.PrettyPrinted)
-                request.HTTPBody = jsonBody
+                let jsonBody = try JSONSerialization.data(withJSONObject: body, options: JSONSerialization.WritingOptions.prettyPrinted)
+                request.httpBody = jsonBody
             } catch let error as NSError {
-                tokenCallback(token: nil, error: error)
+                tokenCallback(nil, error)
                 return
             }
             
-            let task = NSURLSession.sharedSession().dataTaskWithRequest(request, completionHandler: {
+            let task = URLSession.shared.dataTask(with: request, completionHandler: {
                 data, response, error in
                 if error != nil {
-                    tokenCallback(token: nil, error: error)
+                    tokenCallback(nil, error as NSError?)
                 } else if data != nil {
                     do {
-                        let serializedData = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.AllowFragments)
+                        let serializedData = try JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.allowFragments)
                         if let dictionaryData = serializedData as? NSDictionary {
-                            let parsedToken = self.parseTokenFromAuth(dictionaryData)
+                            let parsedToken = self.parseTokenFromAuth(dataToParse: dictionaryData)
                             if parsedToken != nil {
-                                TokenManager().saveToken(parsedToken)
+                                SMTokenManager().saveToken(tokenToSave: parsedToken!)
                             }
-                            tokenCallback(token: self.parseTokenFromAuth(dictionaryData), error: nil)
+                            tokenCallback(self.parseTokenFromAuth(dataToParse: dictionaryData), nil)
                         }
                     } catch let error as NSError {
-                        tokenCallback(token: nil, error: error)
+                        tokenCallback(nil, error)
                         return
                     }
                     

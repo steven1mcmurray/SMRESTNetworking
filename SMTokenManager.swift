@@ -14,10 +14,10 @@ struct SMTokenManager {
     let tokenKey = "token"
     
     func saveToken(tokenToSave: String) {
-        FXKeychain.defaultKeychain().setObject(tokenToSave, forKey: tokenKey)
+        FXKeychain.default().setObject(tokenToSave, forKey: tokenKey)
     }
     
     func getToken() -> String? {
-        return FXKeychain.defaultKeychain().objectForKey(tokenKey) as? String
+        return FXKeychain.default().object(forKey: tokenKey) as? String
     }
 }

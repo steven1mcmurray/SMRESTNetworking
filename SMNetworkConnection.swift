@@ -19,7 +19,7 @@
     SMNetworkConnection().makeAuthenticatedRequest(requestMethod: RequestMethod.POST, requestURL: url, bodyDictionary: body, returnedJSON: {
             jsonArray in 
             Handle your JSON data here
-        }
+        })
 */
 
 import Foundation
@@ -28,17 +28,17 @@ class SMNetworkConnection {
     
     let authorizationHeaderField = "authorization"
     
-    func makeAuthenticatedRequest(requestMethod: RequestMethod, requestURL: NSURL, bodyDictionary: NSDictionary?, returnedJSON: (NSArray?) -> ()) {
+    func makeAuthenticatedRequest(requestMethod: RequestMethod, requestURL: URL, bodyDictionary: NSDictionary?, returnedJSON: @escaping (NSArray?) -> ()) {
         
-        let request = NSMutableURLRequest(URL: requestURL)
+        var request = URLRequest(url: requestURL)
         if requestMethod != RequestMethod.GET {
-            request.HTTPMethod = requestMethod.methodType
+            request.httpMethod = requestMethod.methodType
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             let body = bodyDictionary
             do {
                 if bodyDictionary != nil {
-                    let jsonBody = try NSJSONSerialization.dataWithJSONObject(body!, options: NSJSONWritingOptions.PrettyPrinted)
-                    request.HTTPBody = jsonBody
+                    let jsonBody = try JSONSerialization.data(withJSONObject: body!, options: JSONSerialization.WritingOptions.prettyPrinted)
+                    request.httpBody = jsonBody
                 }
             } catch let error as NSError {
                 print("Error serializing JSON:", error)
@@ -46,18 +46,18 @@ class SMNetworkConnection {
             }
         }
         if SMTokenManager().getToken() != nil {
-            request.setValue(TokenManager().getToken(), forHTTPHeaderField: self.authorizationHeaderField)
+            request.setValue(SMTokenManager().getToken(), forHTTPHeaderField: self.authorizationHeaderField)
         } else {
             print("Error, no token for current user, must authenticate first.")
             return
         }
-        let task = NSURLSession.sharedSession().dataTaskWithRequest(request, completionHandler: {
+        let task = URLSession.shared.dataTask(with: request, completionHandler: {
             data, response, error in
             if error != nil {
                 print("Error in request: ", error)
                 returnedJSON(nil)
             } else if data != nil {
-                let jsonData = self.handleJSONData(data!)
+                let jsonData = self.handleJSONData(dataToSerialize: data! as NSData)
                 returnedJSON(jsonData)
             }
         })
@@ -66,12 +66,12 @@ class SMNetworkConnection {
     
     func handleJSONData(dataToSerialize: NSData) -> NSArray? {
         do {
-            let json = try NSJSONSerialization.JSONObjectWithData(dataToSerialize, options: NSJSONReadingOptions.AllowFragments)
+            let json = try JSONSerialization.jsonObject(with: dataToSerialize as Data, options: JSONSerialization.ReadingOptions.allowFragments)
             if let jsonArray = json as? NSArray {
                 return jsonArray
             } else if let jsonDictionary = json as? NSDictionary {
                 let arrayedDictionary: [NSDictionary] = [jsonDictionary]
-                return arrayedDictionary
+                return arrayedDictionary as NSArray?
             } else {
                 return nil
             }

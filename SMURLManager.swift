@@ -16,9 +16,10 @@ enum SMURLManager {
     
     case APIBase
     case AuthBase
-    
+
     var base: String {
         switch self {
+            //Add and edit base cases here. Return the string values representing the base URL's. This example shows an APIBase and an AuthBase, where the AuthBase is used to authenticate a user and receive a token, and the APIBase is used to send authenticated requests.
         case .APIBase:
             return "https://..."
         case .AuthBase:
